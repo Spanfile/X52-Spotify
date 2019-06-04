@@ -1,3 +1,6 @@
+use spotify::Spotify;
+
 fn main() {
-    println!("Hello, world!");
+    let spotify = Spotify::new();
+    println!("{:?}", spotify.get_track());
 }
