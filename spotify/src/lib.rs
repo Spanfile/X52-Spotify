@@ -11,12 +11,19 @@ use std::time::Duration;
 use track::Track;
 use window::SpotifyWindow;
 
-pub type TrackCallback = fn(track: Option<Track>);
+pub type TrackCallback = fn(status: SpotifyStatus);
 
 pub struct Spotify {
     callback: TrackCallback,
     refresh_interval: Duration,
     previous_title: Option<String>,
+}
+
+#[derive(Debug)]
+pub enum SpotifyStatus {
+    Playing(Track),
+    NotPlaying,
+    NotRunning,
 }
 
 impl Spotify {
@@ -43,21 +50,30 @@ impl Spotify {
                     }
 
                     std::thread::sleep(self.refresh_interval);
-                    println!("tick");
+                    // println!("tick");
 
                     match window.get_title() {
-                        Ok(title) => match &self.previous_title {
-                            Some(prev) if title != *prev => {
-                                (self.callback)(Track::build(&title));
-                                self.previous_title = Some(title);
+                        Ok(title) => {
+                            if title != self.previous_title {
+                                match title {
+                                    Some(title) => {
+                                        if let Some(track) = Track::build(&title) {
+                                            (self.callback)(SpotifyStatus::Playing(track));
+                                        } else {
+                                            (self.callback)(SpotifyStatus::NotPlaying);
+                                        }
+
+                                        self.previous_title = Some(title);
+                                    }
+                                    None => {
+                                        (self.callback)(SpotifyStatus::NotRunning);
+                                        self.previous_title = None;
+                                    }
+                                }
+
                             }
-                            None => {
-                                (self.callback)(Track::build(&title));
-                                self.previous_title = Some(title);
-                            }
-                            _ => (),
-                        },
-                        Err(e) => println!("{:?}", e),
+                        }
+                        Err(e) => println!("error: {:?}", e),
                     }
                 }
             });

@@ -1,4 +1,4 @@
-use spotify::{track::Track, Spotify};
+use spotify::{SpotifyStatus, Spotify};
 use std::time::Duration;
 
 fn main() -> Result<(), Box<std::error::Error>> {
@@ -6,6 +6,6 @@ fn main() -> Result<(), Box<std::error::Error>> {
     Ok(spotify.run()?)
 }
 
-fn track_changed(track: Option<Track>) {
-    println!("{:?}", track);
+fn track_changed(status: SpotifyStatus) {
+    println!("{:?}", status);
 }
