@@ -1,20 +1,16 @@
 #![allow(non_upper_case_globals)]
 
 mod libx52;
+mod line;
 
 use libx52::*;
+use line::Line;
 use std::cell::RefCell;
-use std::fmt;
 use std::ptr;
 
 pub struct X52 {
     device: RefCell<*mut libx52_device>,
-}
-
-pub enum MFDLine {
-    Line0 = 0,
-    Line1 = 1,
-    Line2 = 2,
+    lines: [Option<Line>; 3],
 }
 
 #[derive(Debug, Clone)]
@@ -34,8 +30,8 @@ impl X52Error {
     }
 }
 
-impl fmt::Display for X52Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+impl std::fmt::Display for X52Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.message)
     }
 }
@@ -49,9 +45,45 @@ impl X52 {
         println!("init: {:?}", X52Error::from_error_code(error));
         X52 {
             device: RefCell::new(device),
+            lines: [None, None, None],
         }
     }
 
+    fn handle_error(&self, error: X52Error) -> Result<(), X52Error> {
+        println!("X52 error handler: {:?}", error);
+        match error.code {
+            // INVALID_PARAM = device pointer is null
+            // NO_DEVICE = device pointer is invalid
+            libx52_error_code_LIBX52_ERROR_INVALID_PARAM
+            | libx52_error_code_LIBX52_ERROR_NO_DEVICE => {
+                println!("handling missing device error: attempting to reinitialise");
+                self.reinitialise()
+            }
+            _ => Err(error),
+        }
+    }
+
+    pub fn set_lines(&mut self, new_lines: [String; 3]) -> Result<(), X52Error> {
+        for (index, line) in new_lines.iter().enumerate() {
+            self.lines[index] = Some(Line::new(line));
+        }
+        Ok(())
+    }
+
+    pub fn tick(&self) -> Result<(), X52Error> {
+        for (index, line) in self.lines.iter().enumerate() {
+            if let Some(line) = line {
+                if let Err(e) = self.set_line(index, line.get()) {
+                    return Err(e);
+                }
+            }
+        }
+
+        self.update_device()
+    }
+}
+
+impl X52 {
     pub fn reinitialise(&self) -> Result<(), X52Error> {
         let error = unsafe { libx52_init(&mut *self.device.borrow_mut()) };
         if error == 0 {
@@ -70,7 +102,7 @@ impl X52 {
         }
     }
 
-    fn update(&self) -> Result<(), X52Error> {
+    fn update_device(&self) -> Result<(), X52Error> {
         let error = unsafe { libx52_update(*self.device.borrow()) };
         if error == 0 {
             Ok(())
@@ -79,43 +111,29 @@ impl X52 {
         }
     }
 
-    fn handle_error(&self, error: X52Error) -> Result<(), X52Error> {
-        println!("X52 error handler: {:?}", error);
-        match error.code {
-            // INVALID_PARAM = device pointer is null
-            // NO_DEVICE = device pointer is invalid
-            libx52_error_code_LIBX52_ERROR_INVALID_PARAM
-            | libx52_error_code_LIBX52_ERROR_NO_DEVICE => {
-                println!("handling missing device error: attempting to reinitialise");
-                self.reinitialise()
-            }
-            _ => Err(error),
-        }
-    }
+    fn set_line(&self, index: usize, line: &str) -> Result<(), X52Error> {
+        loop {
+            let error = unsafe {
+                libx52_set_text(
+                    *self.device.borrow(),
+                    index as u8,
+                    line.as_ptr() as *const std::os::raw::c_char,
+                    line.len() as u8,
+                )
+            };
 
-    pub fn set_lines(&self, lines: [String; 3]) -> Result<(), X52Error> {
-        for (index, line) in lines.iter().enumerate() {
-            loop {
-                let error = unsafe {
-                    libx52_set_text(
-                        *self.device.borrow(),
-                        index as u8,
-                        line.as_ptr() as *const std::os::raw::c_char,
-                        line.len() as u8,
-                    )
+            if error != 0 {
+                // error happened; try to handle it
+                match self.handle_error(X52Error::from_error_code(error)) {
+                    Err(e) => return Err(e), // couldn't handle it ourselves, return it
+                    _ => continue,           // could handle it, retry the operation
                 };
-                if error != 0 {
-                    // error happened; try to handle it
-                    match self.handle_error(X52Error::from_error_code(error)) {
-                        Err(e) => return Err(e), // couldn't handle it ourselves, return it
-                        _ => continue,           // could handle it, retry the operation
-                    };
-                }
-
-                break;
             }
+
+            break;
         }
-        self.update()
+
+        Ok(())
     }
 }
 
@@ -125,6 +143,7 @@ impl Drop for X52 {
     }
 }
 
+unsafe impl Send for X52 {}
 unsafe impl Sync for X52 {}
 
 impl Default for X52 {
