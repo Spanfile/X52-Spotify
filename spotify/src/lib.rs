@@ -11,10 +11,10 @@ use std::time::Duration;
 use track::Track;
 use window::SpotifyWindow;
 
-pub struct Spotify<F: FnMut(SpotifyStatus) -> ()> {
-    callback: F,
-    refresh_interval: Duration,
-    previous_title: Option<String>,
+#[derive(Debug)]
+pub enum Update {
+    Tick,
+    Status(SpotifyStatus),
 }
 
 #[derive(Debug)]
@@ -24,7 +24,16 @@ pub enum SpotifyStatus {
     NotRunning,
 }
 
-impl<F> Spotify<F> where F: FnMut(SpotifyStatus) -> () + Send {
+pub struct Spotify<F: FnMut(Update) -> ()> {
+    callback: F,
+    refresh_interval: Duration,
+    previous_title: Option<String>,
+}
+
+impl<F> Spotify<F>
+where
+    F: FnMut(Update) -> () + Send,
+{
     pub fn new(refresh_interval: Duration, callback: F) -> Spotify<F> {
         Spotify {
             callback,
@@ -39,6 +48,7 @@ impl<F> Spotify<F> where F: FnMut(SpotifyStatus) -> () + Send {
 
         thread::scope(|s| {
             let interrupt_flag_clone = Arc::clone(&interrupt_flag);
+            // run ticker in separate thread
             s.spawn(move |_| {
                 let window = SpotifyWindow::new();
                 loop {
@@ -56,19 +66,24 @@ impl<F> Spotify<F> where F: FnMut(SpotifyStatus) -> () + Send {
                                 match title {
                                     Some(title) => {
                                         if let Some(track) = Track::build(&title) {
-                                            (self.callback)(SpotifyStatus::Playing(track));
+                                            (self.callback)(Update::Status(
+                                                SpotifyStatus::Playing(track),
+                                            ));
                                         } else {
-                                            (self.callback)(SpotifyStatus::NotPlaying);
+                                            (self.callback)(Update::Status(
+                                                SpotifyStatus::NotPlaying,
+                                            ));
                                         }
 
                                         self.previous_title = Some(title);
                                     }
                                     None => {
-                                        (self.callback)(SpotifyStatus::NotRunning);
+                                        (self.callback)(Update::Status(SpotifyStatus::NotRunning));
                                         self.previous_title = None;
                                     }
                                 }
-
+                            } else {
+                                (self.callback)(Update::Tick);
                             }
                         }
                         Err(e) => println!("error: {:?}", e),
@@ -76,6 +91,7 @@ impl<F> Spotify<F> where F: FnMut(SpotifyStatus) -> () + Send {
                 }
             });
 
+            // listen for SIGINTs in own thread
             for sig in signals.forever() {
                 match sig {
                     SIGINT => {

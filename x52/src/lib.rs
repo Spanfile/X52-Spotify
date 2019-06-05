@@ -86,7 +86,7 @@ impl X52 {
             // NO_DEVICE = device pointer is invalid
             libx52_error_code_LIBX52_ERROR_INVALID_PARAM
             | libx52_error_code_LIBX52_ERROR_NO_DEVICE => {
-                println!("handling missing device error -> attempting to reinitialise");
+                println!("handling missing device error: attempting to reinitialise");
                 self.reinitialise()
             }
             _ => Err(error),
@@ -94,14 +94,14 @@ impl X52 {
     }
 
     pub fn set_lines(&self, lines: [String; 3]) -> Result<(), X52Error> {
-        for line in 0..=2 {
+        for (index, line) in lines.iter().enumerate() {
             loop {
                 let error = unsafe {
                     libx52_set_text(
                         *self.device.borrow(),
-                        line as u8,
-                        lines[line].as_ptr() as *const std::os::raw::c_char,
-                        lines[line].len() as u8,
+                        index as u8,
+                        line.as_ptr() as *const std::os::raw::c_char,
+                        line.len() as u8,
                     )
                 };
                 if error != 0 {
@@ -126,3 +126,9 @@ impl Drop for X52 {
 }
 
 unsafe impl Sync for X52 {}
+
+impl Default for X52 {
+    fn default() -> Self {
+        Self::new()
+    }
+}

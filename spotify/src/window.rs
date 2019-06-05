@@ -32,8 +32,8 @@ pub enum SpotifyError {
 impl std::fmt::Display for SpotifyError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            SpotifyError::GetPropertyFailed { source: _ } => write!(f, "get_property failed"),
-            SpotifyError::TitleNotUTF8 { source: _ } => write!(f, "window title not UTF-8"),
+            SpotifyError::GetPropertyFailed { .. } => write!(f, "get_property failed"),
+            SpotifyError::TitleNotUTF8 { .. } => write!(f, "window title not UTF-8"),
         }
     }
 }
@@ -61,7 +61,7 @@ impl SpotifyWindow {
             match self.get_window_title(win) {
                 Ok(t) => Ok(Some(t)),
                 Err(e) => {
-                    if let SpotifyError::GetPropertyFailed { source: _ } = e {
+                    if let SpotifyError::GetPropertyFailed { .. } = e {
                         println!("spotify disappeared most likely");
                         *window = None;
                         Ok(None)
@@ -120,10 +120,7 @@ fn find_spotify(
         1024,
     )
     .get_reply()
-    .expect(&format!(
-        "couldn't get reply for ATOM_WM_CLASS for {}",
-        window
-    ));
+    .unwrap_or_else(|_| panic!("couldn't get reply for ATOM_WM_CLASS for {}", window));
 
     if reply.value_len() != 0 {
         let class = reply.value::<u8>();
@@ -154,10 +151,7 @@ fn find_spotify(
                 1024,
             )
             .get_reply()
-            .expect(&format!(
-                "couldn't get reply for ATOM_WM_NAME for {}",
-                window
-            ));
+            .unwrap_or_else(|_| panic!("couldn't get reply for ATOM_WM_NAME for {}", window));
             let title = String::from_utf8(property.value().to_vec())
                 .expect("couldn't build UTF-8 string from reply");
             // println!("{:?}", title.as_bytes());
