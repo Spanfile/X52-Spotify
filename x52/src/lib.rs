@@ -50,7 +50,7 @@ impl X52 {
     }
 
     fn handle_error(&self, error: X52Error) -> Result<(), X52Error> {
-        println!("X52 error handler: {:?}", error);
+        // println!("X52 error handler: {:?}", error);
         match error.code {
             // INVALID_PARAM = device pointer is null
             // NO_DEVICE = device pointer is invalid
@@ -70,7 +70,13 @@ impl X52 {
         Ok(())
     }
 
-    pub fn tick(&self) -> Result<(), X52Error> {
+    pub fn tick(&mut self) -> Result<(), X52Error> {
+        for line in self.lines.iter_mut() {
+            if let Some(line) = line {
+                line.tick();
+            }
+        }
+
         for (index, line) in self.lines.iter().enumerate() {
             if let Some(line) = line {
                 if let Err(e) = self.set_line(index, line.get()) {

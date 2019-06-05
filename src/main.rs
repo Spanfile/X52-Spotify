@@ -5,9 +5,9 @@ use x52::X52;
 fn main() -> Result<(), Box<std::error::Error>> {
     let mut x52_device = X52::new();
     let mut spotify = Spotify::new(Duration::from_secs(1), |update| {
-        println!("{:?}", update);
         match update {
             Update::Status(status) => {
+                println!("{:?}", status);
                 match status {
                     SpotifyStatus::NotRunning => {
                         if let Err(e) = x52_device.set_lines([
