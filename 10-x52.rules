@@ -1,0 +1,2 @@
+# This vendor+product ID is for the Saitek X52 (non-pro). Make the device accessible by the current physical user
+ATTRS{idVendor}=="06a3", ATTRS{idProduct}=="075c", TAG+="uaccess"
