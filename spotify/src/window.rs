@@ -41,8 +41,8 @@ impl std::fmt::Display for SpotifyError {
 impl SpotifyWindow {
     pub fn new() -> SpotifyWindow {
         let (conn, screen_num) = xcb::Connection::connect(None).expect("couldn't connect to X");
-        let setup = conn.get_setup();
-        let root_window = setup
+        let root_window = conn
+            .get_setup()
             .roots()
             .nth(screen_num as usize)
             .expect("couldn't get X screen")

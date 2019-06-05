@@ -11,10 +11,8 @@ use std::time::Duration;
 use track::Track;
 use window::SpotifyWindow;
 
-pub type TrackCallback = fn(status: SpotifyStatus);
-
-pub struct Spotify {
-    callback: TrackCallback,
+pub struct Spotify<F: FnMut(SpotifyStatus) -> ()> {
+    callback: F,
     refresh_interval: Duration,
     previous_title: Option<String>,
 }
@@ -26,8 +24,8 @@ pub enum SpotifyStatus {
     NotRunning,
 }
 
-impl Spotify {
-    pub fn new(refresh_interval: Duration, callback: TrackCallback) -> Spotify {
+impl<F> Spotify<F> where F: FnMut(SpotifyStatus) -> () + Send {
+    pub fn new(refresh_interval: Duration, callback: F) -> Spotify<F> {
         Spotify {
             callback,
             refresh_interval,
