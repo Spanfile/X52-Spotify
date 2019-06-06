@@ -1,3 +1,6 @@
+mod spotify;
+mod x52;
+
 use spotify::{Spotify, SpotifyStatus, Update};
 use std::time::Duration;
 use x52::X52;

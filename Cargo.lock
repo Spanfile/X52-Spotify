@@ -395,15 +395,6 @@ version = "0.6.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "spotify"
-version = "0.1.0"
-dependencies = [
- "crossbeam 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "signal-hook 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
- "xcb 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "strsim"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -519,18 +510,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "x52"
-version = "0.1.0"
-dependencies = [
- "bindgen 0.49.2 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "x52-spotify"
 version = "0.1.0"
 dependencies = [
- "spotify 0.1.0",
- "x52 0.1.0",
+ "bindgen 0.49.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "crossbeam 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "signal-hook 0.1.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xcb 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]

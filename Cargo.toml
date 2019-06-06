@@ -5,5 +5,9 @@ authors = ["Spanfile <spansdev@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-spotify = { path = "spotify" }
-x52 = { path= "x52" }
+xcb = "0.8"
+signal-hook = "0.1.9"
+crossbeam = "0.7.1"
+
+[build-dependencies]
+bindgen = "0.49.2"
